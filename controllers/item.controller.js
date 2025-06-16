@@ -88,3 +88,88 @@ export const getItemsByPriceRange = async (req, res) => {
       .json({ message: "Error fetching items between price range" });
   }
 };
+
+// DELETE item by ID
+// DELETE http://localhost:5000/api/items/:id
+export const deleteItemById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await Item.findByIdAndDelete(id);
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.json({ message: "Item deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Error deleting item", error });
+  }
+};
+
+// PUT update item by ID
+// PUT http://localhost:5000/api/items/:id
+export const updateItemById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await Item.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.json(item);
+  } catch (error) {
+    res.status(400).json({ message: "Error updating item", error });
+  }
+};
+
+export const addReviewToItem = async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    const { username, rating, comment } = req.body;
+    const newReview = { username, rating, comment };
+
+    item.reviews.push(newReview);
+    await item.save();
+
+    res.status(201).json({ message: "Review added", review: newReview });
+  } catch (error) {
+    res.status(500).json({ message: "Error adding review" });
+  }
+};
+
+export const getReviewsForItem = async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    res.json(item.reviews);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching reviews" });
+  }
+};
+
+// get average rating
+export const getAverageRating = async (req, res) => {
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "item not found" });
+
+    let totalRating = 0;
+    for (const review of item.reviews) {
+      totalRating += review.rating;
+    }
+
+    const averageRating =
+      item.reviews.length > 0 ? totalRating / item.reviews.length : 0;
+
+    res.json({ avgRating: averageRating.toFixed(2) });
+  } catch (error) {
+    res.status(500).json({ message: "Error calculating average rating" });
+  }
+};
